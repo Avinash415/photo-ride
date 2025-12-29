@@ -3,7 +3,6 @@ import photographerRoutes from "./routes/photographer.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import cookieParser from "cookie-parser";
 
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
@@ -12,25 +11,30 @@ dotenv.config();
 
 const app = express();
 
-app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
+/* ✅ CORS — MUST BE FIRST */
 app.use(
   cors({
     origin: [
-      'http://localhost:3000',
-      'https://photoridefrontend.vercel.app'
+      "http://localhost:3000",
+      "https://photoridefrontend.vercel.app",
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
+/* 🔥 ADD THIS — PREVENTS CORS BLOCK */
+app.options("*", cors());
+
+app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
+
 app.use("/api/auth", authRoutes);
 app.use("/api/photographers", photographerRoutes);
 app.use("/api/bookings", bookingRoutes);
