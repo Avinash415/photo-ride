@@ -7,7 +7,7 @@ import { generateToken } from "../utils/jwt.js";
 const cookieOptions = {
   httpOnly: true,
   secure: false,           // localhost ke liye false
-  sameSite: "lax",         // ✅ frontend-backend alag port
+  sameSite: "none",         // REQUIRED for cross-origin
   path: "/",
   maxAge: 24 * 60 * 60 * 1000, // 1 day
 };
