@@ -6,7 +6,7 @@ import { generateToken } from "../utils/jwt.js";
 /* ================= COOKIE OPTIONS ================= */
 const cookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production", // ✅ FIX
+  secure: true, 
   sameSite: "none",                               // required for cross-origin
   path: "/",
   maxAge: 24 * 60 * 60 * 1000,
