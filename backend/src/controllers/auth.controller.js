@@ -6,11 +6,12 @@ import { generateToken } from "../utils/jwt.js";
 /* ================= COOKIE OPTIONS ================= */
 const cookieOptions = {
   httpOnly: true,
-  secure: false,           // localhost ke liye false
-  sameSite: "none",         // REQUIRED for cross-origin
+  secure: process.env.NODE_ENV === "production", // ✅ FIX
+  sameSite: "none",                               // required for cross-origin
   path: "/",
-  maxAge: 24 * 60 * 60 * 1000, // 1 day
+  maxAge: 24 * 60 * 60 * 1000,
 };
+
 
 /* ================= REGISTER ================= */
 export const register = async (req, res) => {
@@ -78,7 +79,7 @@ export const login = async (req, res) => {
 export const logout = (req, res) => {
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "none",
     path: "/",
   });
 
