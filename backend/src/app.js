@@ -24,8 +24,6 @@ app.use(
   })
 );
 
-/* 🔥 ADD THIS — PREVENTS CORS BLOCK */
-app.options("*", cors());
 
 app.use(cookieParser());
 app.use(express.json());
