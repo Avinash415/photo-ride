@@ -12,11 +12,12 @@ dotenv.config();
 const app = express();
 
 /* ✅ CORS — MUST BE FIRST */
+app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      "http://localhost:3000",
       "https://photoridefrontend.vercel.app",
+      "http://localhost:3000",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -25,8 +26,6 @@ app.use(
   })
 );
 
-
-app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
