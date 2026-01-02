@@ -12,6 +12,7 @@ dotenv.config();
 const app = express();
 
 /* ✅ CORS — MUST BE FIRST */
+app.set("trust proxy", 1);
 app.use(cookieParser());
 app.use(
   cors({
