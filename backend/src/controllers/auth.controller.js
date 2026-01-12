@@ -5,26 +5,15 @@ import { generateToken } from "../utils/jwt.js";
 
 /* ================= COOKIE OPTIONS ================= */
 const getCookieOptions = () => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  console.log("🔍 Environment:", process.env.NODE_ENV || 'development');
-  console.log("🔍 Is Production:", isProduction);
-  
-  const options = {
+  const isProduction = process.env.NODE_ENV === "production";
+
+  return {
     httpOnly: true,
-    secure: isProduction, // ✅ Production: true, Development: false
-    sameSite: isProduction ? "none" : "lax", // ✅ Production: "none", Development: "lax"
+    secure: isProduction, // HTTPS only in prod
+    sameSite: "none", // REQUIRED for cross-site
     path: "/",
     maxAge: 24 * 60 * 60 * 1000,
   };
-
-  // ✅ Production mein domain add karo
-  if (isProduction) {
-    options.domain = ".onrender.com"; // ✅ Hardcode for production
-    console.log("🔍 Setting cookie domain for production:", options.domain);
-  }
-
-  console.log("🔍 Final Cookie Options:", options);
-  return options;
 };
 
 /* ================= REGISTER ================= */
@@ -47,7 +36,7 @@ export const register = async (req, res) => {
     });
 
     const token = generateToken(user);
-    
+
     // ✅ Use dynamic cookie options
     const cookieOptions = getCookieOptions();
     res.cookie("token", token, cookieOptions);
@@ -71,17 +60,17 @@ export const login = async (req, res) => {
 
   try {
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       console.log("❌ User not found:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
     console.log("✅ User found:", user.email);
-    
+
     const isMatch = await bcrypt.compare(password, user.password);
     console.log("🔍 Password match:", isMatch);
-    
+
     if (!isMatch) {
       console.log("❌ Password mismatch for:", email);
       return res.status(400).json({ message: "Invalid credentials" });
@@ -93,7 +82,7 @@ export const login = async (req, res) => {
     // ✅ Use dynamic cookie options
     const cookieOptions = getCookieOptions();
     res.cookie("token", token, cookieOptions);
-    
+
     console.log("✅ Cookie set with options:", cookieOptions);
 
     res.json({
@@ -103,27 +92,27 @@ export const login = async (req, res) => {
       user: {
         id: user._id,
         name: user.name,
-        email: user.email
-      }
+        email: user.email,
+      },
     });
   } catch (err) {
     console.error("❌ Login error:", err);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Server error" 
+      message: "Server error",
     });
   }
 };
 
 /* ================= LOGOUT ================= */
 export const logout = (req, res) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+  const isProduction = process.env.NODE_ENV === "production";
+
   res.clearCookie("token", {
     httpOnly: true,
-    sameSite: isProduction ? "none" : "lax",
+    secure: true,
+    sameSite: "none",
     path: "/",
-    domain: isProduction ? ".onrender.com" : undefined,
   });
 
   res.json({ message: "Logged out" });
@@ -161,7 +150,7 @@ export const getMe = async (req, res) => {
   try {
     // Token verify karo
     let token;
-    
+
     if (req.cookies?.token) {
       token = req.cookies.token;
     } else if (req.headers.authorization?.startsWith("Bearer")) {
@@ -173,10 +162,10 @@ export const getMe = async (req, res) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // User details fetch karo
     const user = await User.findById(decoded.id).select("-password");
-    
+
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
