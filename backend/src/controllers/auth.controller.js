@@ -7,10 +7,12 @@ import { generateToken } from "../utils/jwt.js";
 const cookieOptions = {
   httpOnly: true,
   secure: true,
-  sameSite: "none",
-  domain: ".onrender.com", 
+  sameSite: "none", 
+  domain: process.env.NODE_ENV === 'production' 
+    ? process.env.COOKIE_DOMAIN || ".onrender.com"
+    : undefined, 
   path: "/",
-  maxAge: 24 * 60 * 60 * 1000,
+  maxAge: 24 * 60 * 60 * 1000, // 24 hours
 };
 
 
@@ -111,5 +113,37 @@ export const protect = (req, res, next) => {
     next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
+/* ================= GET CURRENT USER ================= */
+export const getMe = async (req, res) => {
+  try {
+    // Token verify karo
+    let token;
+    
+    if (req.cookies?.token) {
+      token = req.cookies.token;
+    } else if (req.headers.authorization?.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // User details fetch karo
+    const user = await User.findById(decoded.id).select("-password");
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ user });
+  } catch (err) {
+    console.error(err);
+    res.status(401).json({ message: "Invalid or expired token" });
   }
 };
