@@ -14,32 +14,18 @@ const app = express();
 /* ✅ TRUST PROXY - RENDER.COM KE LIYE MUST */
 app.set("trust proxy", 1);
 
-/* ✅ CORS — PRODUCTION FIX */
-const allowedOrigins = [
-  "https://photoridefrontend.onrender.com",
-  "https://photoridefrontend.vercel.app",
-  "http://localhost:3000",
-];
-
 app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = `CORS policy: ${origin} not allowed`;
-      console.log("❌ CORS blocked:", origin);
-      return callback(new Error(msg), false);
-    }
-    
-    console.log("✅ CORS allowed:", origin);
-    return callback(null, true);
-  },
-  credentials: true, // ✅ MUST be true
+  origin: [
+    "https://photoridefrontend.vercel.app",
+    "https://photoridefrontend.onrender.com",
+    "http://localhost:3000",
+  ],
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["set-cookie"], // ✅ Expose set-cookie
 }));
+
+app.options("*", cors());
 
 app.use(cookieParser());
 app.use(express.json());
