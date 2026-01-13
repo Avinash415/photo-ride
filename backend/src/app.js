@@ -16,8 +16,8 @@ app.set("trust proxy", 1);
 
 /* ✅ CORS — PRODUCTION FIX */
 const allowedOrigins = [
-  "https://photoridefrontend.vercel.app",
   "https://photoridefrontend.onrender.com",
+  "https://photoridefrontend.vercel.app",
   "http://localhost:3000",
 ];
 
