@@ -14,18 +14,14 @@ const app = express();
 /* ✅ TRUST PROXY - RENDER.COM KE LIYE MUST */
 app.set("trust proxy", 1);
 
-const allowedOrigins = [
-  "https://photoridefrontend.vercel.app",
-  "https://photoridefrontend.onrender.com",
-  "http://localhost:3000",
-];
-
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    origin: [
+      "https://photoridefrontend.onrender.com",
+      "https://photoridefrontend.vercel.app",
+      "http://localhost:3000",
+    ],
+    credentials: false, // ❌ cookies OFF
   })
 );
 
@@ -37,15 +33,6 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-// Test endpoint
-app.get("/api/test", (req, res) => {
-  res.json({
-    status: "Backend is running",
-    timestamp: new Date().toISOString(),
-    node_env: process.env.NODE_ENV || "development",
-    cookie_domain: process.env.COOKIE_DOMAIN || "Not set",
-  });
-});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/photographers", photographerRoutes);

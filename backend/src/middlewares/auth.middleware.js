@@ -1,27 +1,18 @@
 import jwt from "jsonwebtoken";
 
 export const protect = (req, res, next) => {
-  let token;
+  const auth = req.headers.authorization;
 
-  // 1. Pehle cookie se token lo
-  if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
+  if (!auth || !auth.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Not authorized" });
   }
 
-  // 2. Agar cookie nahi to header se (purane logins ke liye fallback)
-  if (!token && req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
-  }
+  const token = auth.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
