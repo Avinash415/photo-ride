@@ -39,7 +39,7 @@ export const register = async (req, res) => {
 
     // ✅ Use dynamic cookie options
     const cookieOptions = getCookieOptions();
-    res.cookie("token", token, cookieOptions);
+    // res.cookie("token", token, cookieOptions);
 
     res.json({
       message: "Registered successfully",
@@ -55,39 +55,28 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
-  console.log("🔍 Login attempt for:", email);
-  console.log("🔍 Request origin:", req.headers.origin);
-
   try {
     const user = await User.findOne({ email });
-
     if (!user) {
-      console.log("❌ User not found:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
-
-    console.log("✅ User found:", user.email);
 
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log("🔍 Password match:", isMatch);
-
     if (!isMatch) {
-      console.log("❌ Password mismatch for:", email);
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const token = generateToken(user);
-    console.log("✅ Token generated for:", user.email);
+    // ✅ Generate JWT
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-    // ✅ Use dynamic cookie options
-    const cookieOptions = getCookieOptions();
-    res.cookie("token", token, cookieOptions);
-
-    console.log("✅ Cookie set with options:", cookieOptions);
-
+    // ✅ SEND TOKEN IN RESPONSE (NOT COOKIE)
     res.json({
       success: true,
-      message: "Logged in successfully",
+      token,
       role: user.role,
       user: {
         id: user._id,
@@ -96,13 +85,10 @@ export const login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("❌ Login error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 /* ================= LOGOUT ================= */
 export const logout = (req, res) => {
@@ -122,28 +108,24 @@ export const logout = (req, res) => {
 export const protect = (req, res, next) => {
   let token;
 
-  // Cookie se token
-  if (req.cookies?.token) {
-    token = req.cookies.token;
-  }
-
-  // Header fallback
-  if (!token && req.headers.authorization?.startsWith("Bearer")) {
+  // ✅ ONLY HEADER
+  if (req.headers.authorization?.startsWith("Bearer")) {
     token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    return res.status(401).json({ message: "Not authorized, no token" });
+    return res.status(401).json({ message: "Not authorized" });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     next();
-  } catch (err) {
-    return res.status(401).json({ message: "Invalid or expired token" });
+  } catch {
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
+
 
 /* ================= GET CURRENT USER ================= */
 export const getMe = async (req, res) => {

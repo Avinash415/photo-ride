@@ -14,18 +14,20 @@ const app = express();
 /* ✅ TRUST PROXY - RENDER.COM KE LIYE MUST */
 app.set("trust proxy", 1);
 
-app.use(cors({
-  origin: [
-    "https://photoridefrontend.vercel.app",
-    "https://photoridefrontend.onrender.com",
-    "http://localhost:3000",
-  ],
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-}));
+const allowedOrigins = [
+  "https://photoridefrontend.vercel.app",
+  "https://photoridefrontend.onrender.com",
+  "http://localhost:3000",
+];
 
-app.options("*", cors());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 app.use(cookieParser());
 app.use(express.json());
