@@ -37,8 +37,9 @@ export const getMyProfile = async (req, res) => {
  * Used in: Find Photographer Page
  */
 export const getAllPhotographers = async (req, res) => {
-  const photographers = await Photographer.find({ available: true })
-    .select("name city rating experience coverImage services");
+  const photographers = await Photographer.find({ available: true }).select(
+    "name city rating experience coverImage services"
+  );
 
   res.json(photographers);
 };
@@ -47,8 +48,16 @@ export const getAllPhotographers = async (req, res) => {
  * ✅ GET SINGLE PHOTOGRAPHER (PUBLIC)
  * Used in: Photographer Details Page
  */
+
 export const getPhotographerById = async (req, res) => {
-  const photographer = await Photographer.findById(req.params.id);
+  const { id } = req.params;
+
+  // ✅ Prevent CastError
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid photographer ID" });
+  }
+
+  const photographer = await Photographer.findById(id);
 
   if (!photographer) {
     return res.status(404).json({ message: "Photographer not found" });

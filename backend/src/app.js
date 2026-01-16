@@ -11,17 +11,18 @@ dotenv.config();
 
 const app = express();
 
-/* ✅ TRUST PROXY - RENDER.COM KE LIYE MUST */
-app.set("trust proxy", 1);
-
 app.use(
   cors({
     origin: [
-      "https://photoridefrontend.onrender.com",
-      "https://photoridefrontend.vercel.app",
       "http://localhost:3000",
+      // Add your production frontend once deployed
+      "https://photoridefrontend.vercel.app",
     ],
-    credentials: false, // ❌ cookies OFF
+    credentials: true, 
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    // Optional but recommended in production
+    optionsSuccessStatus: 200, 
   })
 );
 
@@ -32,7 +33,6 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-
 
 app.use("/api/auth", authRoutes);
 app.use("/api/photographers", photographerRoutes);

@@ -1,20 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { generateToken } from "../utils/jwt.js";
-
-/* ================= COOKIE OPTIONS ================= */
-const getCookieOptions = () => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  return {
-    httpOnly: true,
-    secure: isProduction, // HTTPS only in prod
-    sameSite: "none", // REQUIRED for cross-site
-    path: "/",
-    maxAge: 24 * 60 * 60 * 1000,
-  };
-};
 
 /* ================= REGISTER ================= */
 export const register = async (req, res) => {
@@ -35,115 +21,112 @@ export const register = async (req, res) => {
       role,
     });
 
-    const token = generateToken(user);
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" } // match your login expiry
+    );
 
-    // ✅ Use dynamic cookie options
-    const cookieOptions = getCookieOptions();
-    // res.cookie("token", token, cookieOptions);
-
-    res.json({
-      message: "Registered successfully",
+    res.status(201).json({
+      success: true,
+      token,
       role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+      message: "Registered and logged in successfully",
     });
   } catch (err) {
-    console.error(err);
+    console.error("Register error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
 /* ================= LOGIN ================= */
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-  const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-  const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(400).json({ message: "Invalid credentials" });
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
+    // ✅ TOKEN MUST BE CREATED
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
 
-  res.json({
-    token,
-    role: user.role,
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-    },
-  });
+    // ✅ TOKEN MUST BE SENT IN RESPONSE
+    res.json({
+      success: true,
+      token,
+      role: user.role,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    });
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
-
 /* ================= LOGOUT ================= */
-export const logout = (req, res) => {
-  const isProduction = process.env.NODE_ENV === "production";
-
-  res.clearCookie("token", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    path: "/",
-  });
-
+/* ⚠️ JWT header based auth me backend logout ki zarurat nahi hoti */
+export const logout = async (req, res) => {
   res.json({ message: "Logged out" });
 };
 
 /* ================= PROTECT MIDDLEWARE ================= */
 export const protect = (req, res, next) => {
-  let token;
+  const auth = req.headers.authorization;
 
-  // ✅ ONLY HEADER
-  if (req.headers.authorization?.startsWith("Bearer")) {
-    token = req.headers.authorization.split(" ")[1];
-  }
-
-  if (!token) {
+  if (!auth || !auth.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Not authorized" });
   }
 
+  const token = auth.split(" ")[1];
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch {
-    return res.status(401).json({ message: "Invalid token" });
+  } catch (err) {
+    return res.status(401).json({ message: "Invalid or expired token" });
   }
 };
-
 
 /* ================= GET CURRENT USER ================= */
 export const getMe = async (req, res) => {
   try {
-    // Token verify karo
-    let token;
-
-    if (req.cookies?.token) {
-      token = req.cookies.token;
-    } else if (req.headers.authorization?.startsWith("Bearer")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
-    if (!token) {
+    // ✅ Header se token
+    const auth = req.headers.authorization;
+    if (!auth || !auth.startsWith("Bearer ")) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
+    const token = auth.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // User details fetch karo
     const user = await User.findById(decoded.id).select("-password");
-
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     res.json({ user });
   } catch (err) {
-    console.error(err);
+    console.error("getMe error:", err);
     res.status(401).json({ message: "Invalid or expired token" });
   }
 };
