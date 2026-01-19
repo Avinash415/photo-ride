@@ -4,7 +4,11 @@ import {
   getMyProfile,
   getAllPhotographers,
   getPhotographerById,
+  getPhotographerFullProfile,
+   updateFullProfile
 } from "../controllers/photographer.controller.js";
+
+import { upload } from "../middlewares/upload.middleware.js";
 
 import { protect } from "../middlewares/auth.middleware.js";
 import { allowRoles } from "../middlewares/role.middleware.js";
@@ -26,8 +30,19 @@ router.get(
   getMyProfile
 );
 
+router.put(
+  "/profile/full",
+  protect,
+  allowRoles("photographer"),
+  upload.array("images", 10),
+  updateFullProfile
+);
+
 /* Public */
 router.get("/", getAllPhotographers);
 router.get("/:id", getPhotographerById);
+// new added
+router.get("/:id/full-profile", getPhotographerFullProfile);
+
 
 export default router;

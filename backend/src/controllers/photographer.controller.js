@@ -1,4 +1,7 @@
+import mongoose from "mongoose";
 import Photographer from "../models/Photographer.js";
+import Review from "../models/Review.js";
+import Category from "../models/Category.js";
 
 /**
  * CREATE / UPDATE PROFILE (Photographer Only)
@@ -65,3 +68,64 @@ export const getPhotographerById = async (req, res) => {
 
   res.json(photographer);
 };
+
+
+// new added 
+export const getPhotographerFullProfile = async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID" });
+  }
+
+  const photographer = await Photographer.findById(id)
+    .populate("categories", "name")
+    .populate("user", "email");
+
+  if (!photographer) {
+    return res.status(404).json({ message: "Not found" });
+  }
+
+  const reviews = await Review.find({ photographer: id })
+    .populate("user", "name");
+
+  res.json({
+    photographer,
+    reviews,
+  });
+};
+
+export const updateFullProfile = async (req, res) => {
+  const {
+    name,
+    city,
+    bio,
+    experience,
+    categories,
+    services,
+    pricePackages,
+    available,
+  } = req.body;
+
+  const portfolioImages = req.files?.map(f => f.path) || [];
+
+  const photographer = await Photographer.findOneAndUpdate(
+    { user: req.user.id },
+    {
+      name,
+      city,
+      bio,
+      experience,
+      categories,
+      services,
+      pricePackages,
+      available,
+      $push: { portfolioImages: { $each: portfolioImages } },
+    },
+    { upsert: true, new: true }
+  );
+
+  res.json(photographer);
+};
+
+
