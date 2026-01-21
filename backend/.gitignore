@@ -1,4 +1,11 @@
+# Environment variables
 .env
-node_modules
+
+# Dependencies
+node_modules/
+
+# Logs
 npm-debug.log
-my-app/
+
+# Ignore frontend app
+/my-app/
