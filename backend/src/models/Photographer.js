@@ -1,25 +1,46 @@
 import mongoose from "mongoose";
 
 const serviceSchema = new mongoose.Schema({
-  title: String,
-  price: Number,
-  description: String,
+  title: {
+    type: String,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  description: {
+    type: String,
+    default: "",
+  },
 });
 
-// new
 const priceSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ["hourly", "per-day", "custom"],
+    required: true,
   },
-  amount: Number,
-  description: String,
-}); 
+  amount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  description: {
+    type: String,
+    default: "",
+  },
+});
 
-// new udated form
 const photographerSchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      unique: true,
+      required: true,
+    },
 
     name: String,
     city: String,
@@ -27,17 +48,13 @@ const photographerSchema = new mongoose.Schema(
     experience: Number,
 
     categories: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Category" }
+      { type: mongoose.Schema.Types.ObjectId, ref: "Category" },
     ],
 
-    portfolioImages: [String], // 👈 carousel images
+    portfolioImages: [String],
 
-    services: [
-      {
-        title: String,
-        description: String,
-      },
-    ],
+    // ✅ FIXED SERVICES
+    services: [serviceSchema],
 
     pricePackages: [priceSchema],
 

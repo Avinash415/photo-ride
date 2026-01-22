@@ -96,36 +96,70 @@ export const getPhotographerFullProfile = async (req, res) => {
 };
 
 export const updateFullProfile = async (req, res) => {
-  const {
-    name,
-    city,
-    bio,
-    experience,
-    categories,
-    services,
-    pricePackages,
-    available,
-  } = req.body;
+  try {
+    const body = req.body || {};
 
-  const portfolioImages = req.files?.map(f => f.path) || [];
+    const updateData = {};
 
-  const photographer = await Photographer.findOneAndUpdate(
-    { user: req.user.id },
-    {
-      name,
-      city,
-      bio,
-      experience,
-      categories,
-      services,
-      pricePackages,
-      available,
-      $push: { portfolioImages: { $each: portfolioImages } },
-    },
-    { upsert: true, new: true }
-  );
+    // ✅ Basic fields (sirf aaye hue update honge)
+    if (body.name) updateData.name = body.name;
+    if (body.city) updateData.city = body.city;
+    if (body.bio) updateData.bio = body.bio;
 
-  res.json(photographer);
+    if (body.experience !== undefined) {
+      updateData.experience = Number(body.experience || 0);
+    }
+
+    if (body.available !== undefined) {
+      updateData.available = body.available === "true";
+    }
+
+    // ✅ Categories (sirf tab jab frontend bheje)
+    if (body.categories) {
+      updateData.categories = JSON.parse(body.categories);
+    }
+
+    // ✅ Services (sirf tab jab bheje)
+    if (body.services) {
+      updateData.services = JSON.parse(body.services).map((s) => ({
+        title: s.title,
+        description: s.description || "",
+        price: Number(s.price || 0),
+      }));
+    }
+
+    // ✅ Price Packages
+    if (body.pricePackages) {
+      updateData.pricePackages = JSON.parse(body.pricePackages).map((p) => ({
+        type: p.type,
+        description: p.description || "",
+        amount: Number(p.amount || 0),
+      }));
+    }
+
+    // ✅ Images (append only)
+    if (req.files && req.files.length > 0) {
+      updateData.$push = {
+        portfolioImages: { $each: req.files.map((f) => f.path) },
+      };
+    }
+
+    const photographer = await Photographer.findOneAndUpdate(
+      { user: req.user.id },
+      updateData,
+      { upsert: true, new: true }
+    );
+
+    res.json({ success: true, photographer });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Profile update failed" });
+  }
 };
+
+
+
+
+
 
 

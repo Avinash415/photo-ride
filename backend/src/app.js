@@ -27,8 +27,19 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+// app.use(express.json({ limit: "10mb" }));
+// app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use((req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+
+  // 🚫 Skip JSON parsing for multipart/form-data
+  if (contentType.includes("multipart/form-data")) {
+    return next();
+  }
+
+  express.json({ limit: "10mb" })(req, res, next);
+});
+
 
 app.get("/", (req, res) => {
   res.send("API is running...");

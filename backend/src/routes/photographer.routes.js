@@ -16,6 +16,15 @@ import { allowRoles } from "../middlewares/role.middleware.js";
 const router = express.Router();
 
 /* Photographer only */
+
+router.put(
+  "/profile/full",
+  protect,
+  allowRoles("photographer"),
+  upload.array("images", 10),
+  updateFullProfile
+);
+
 router.post(
   "/profile",
   protect,
@@ -30,13 +39,6 @@ router.get(
   getMyProfile
 );
 
-router.put(
-  "/profile/full",
-  protect,
-  allowRoles("photographer"),
-  upload.array("images", 10),
-  updateFullProfile
-);
 
 /* Public */
 router.get("/", getAllPhotographers);
