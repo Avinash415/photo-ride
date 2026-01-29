@@ -1,27 +1,23 @@
-import mongoose, { Types } from "mongoose";
+import { Types } from "mongoose";
 import Photographer from "../models/Photographer.js";
 import Review from "../models/Review.js";
 
 /**
  * ============================================================
- * HELPER: SAFE OBJECT ID VALIDATION (WITH FALLBACK)
+ * SAFE OBJECT ID VALIDATOR (NO mongoose reference)
  * ============================================================
  */
 const isValidObjectId = (id) => {
-  if (!id) return false;
-
-  // Preferred (works in Mongoose v6+)
-  if (Types?.ObjectId?.isValid(id)) return true;
-
-  // Fallback (older / edge environments)
-  if (mongoose?.Types?.ObjectId?.isValid(id)) return true;
-
-  return false;
+  try {
+    return Types.ObjectId.isValid(id);
+  } catch {
+    return false;
+  }
 };
 
 /**
  * ============================================================
- * CREATE OR UPDATE BASIC PROFILE (Photographer Only)
+ * CREATE OR UPDATE BASIC PROFILE
  * ============================================================
  */
 export const createOrUpdateProfile = async (req, res) => {
@@ -53,7 +49,7 @@ export const createOrUpdateProfile = async (req, res) => {
 
 /**
  * ============================================================
- * GET MY PROFILE (Photographer)
+ * GET MY PROFILE
  * ============================================================
  */
 export const getMyProfile = async (req, res) => {
@@ -95,28 +91,14 @@ export const getAllPhotographers = async (req, res) => {
  * ============================================================
  */
 export const getPhotographerById = async (req, res) => {
-  console.log("📌 getPhotographerById called");
-  console.log("📌 params:", req.params);
-
   try {
     const { id } = req.params;
 
-    console.log("📌 validating id:", id);
-
-    if (!id) {
-      return res.status(400).json({ message: "ID missing" });
-    }
-
     if (!isValidObjectId(id)) {
-      console.log("❌ Invalid ObjectId");
       return res.status(400).json({ message: "Invalid photographer ID" });
     }
 
-    console.log("📌 Fetching photographer from DB");
-
     const photographer = await Photographer.findById(id);
-
-    console.log("📌 Photographer result:", photographer);
 
     if (!photographer) {
       return res.status(404).json({ message: "Photographer not found" });
@@ -124,14 +106,12 @@ export const getPhotographerById = async (req, res) => {
 
     return res.status(200).json(photographer);
   } catch (error) {
-    console.error("🔥 getPhotographerById CRASH:", error);
+    console.error("❌ getPhotographerById:", error);
     return res.status(500).json({
       message: "Server error while fetching photographer",
-      error: error.message, // TEMP: expose error
     });
   }
 };
-
 
 /**
  * ============================================================
@@ -173,8 +153,7 @@ export const getPhotographerFullProfile = async (req, res) => {
 
 /**
  * ============================================================
- * UPDATE FULL PROFILE (Photographer Only)
- * Partial updates supported
+ * UPDATE FULL PROFILE (PARTIAL UPDATES)
  * ============================================================
  */
 export const updateFullProfile = async (req, res) => {
@@ -182,7 +161,7 @@ export const updateFullProfile = async (req, res) => {
     const body = req.body || {};
     const updateData = {};
 
-    // ✅ Basic fields
+    // Basic fields
     if (body.name) updateData.name = body.name;
     if (body.city) updateData.city = body.city;
     if (body.bio) updateData.bio = body.bio;
@@ -191,13 +170,12 @@ export const updateFullProfile = async (req, res) => {
       updateData.experience = Number(body.experience || 0);
     }
 
-    // ✅ Boolean-safe available flag
     if (body.available !== undefined) {
       updateData.available =
         body.available === true || body.available === "true";
     }
 
-    // ✅ Categories (safe parsing)
+    // Categories
     if (body.categories) {
       try {
         updateData.categories = JSON.parse(body.categories);
@@ -208,7 +186,7 @@ export const updateFullProfile = async (req, res) => {
       }
     }
 
-    // ✅ Services
+    // Services
     if (body.services) {
       try {
         updateData.services = JSON.parse(body.services).map((s) => ({
@@ -221,7 +199,7 @@ export const updateFullProfile = async (req, res) => {
       }
     }
 
-    // ✅ Price Packages
+    // Price Packages
     if (body.pricePackages) {
       try {
         updateData.pricePackages = JSON.parse(body.pricePackages).map((p) => ({
@@ -236,7 +214,7 @@ export const updateFullProfile = async (req, res) => {
       }
     }
 
-    // ✅ Portfolio Images (append only)
+    // Portfolio Images (append only)
     if (req.files?.length) {
       updateData.$push = {
         portfolioImages: {
