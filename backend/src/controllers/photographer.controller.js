@@ -75,9 +75,36 @@ export const getAllPhotographers = async (req, res) => {
  * GET SINGLE PHOTOGRAPHER BY ID (PUBLIC)
  * ============================================================
  */
+// export const getPhotographerById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+
+//     // ✅ Prevent CastError
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: "Invalid photographer ID" });
+//     }
+
+//     const photographer = await Photographer.findById(id);
+
+//     if (!photographer) {
+//       return res.status(404).json({ message: "Photographer not found" });
+//     }
+
+//     res.status(200).json(photographer);
+//   } catch (error) {
+//     console.error("❌ getPhotographerById:", error);
+//     res.status(500).json({
+//       message: "Server error while fetching photographer",
+//     });
+//   }
+// };
 export const getPhotographerById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Explicitly import mongoose if needed (though this is not ideal)
+    // Add this at the very beginning of the function
+    const mongoose = (await import('mongoose')).default;
 
     // ✅ Prevent CastError
     if (!mongoose.Types.ObjectId.isValid(id)) {
