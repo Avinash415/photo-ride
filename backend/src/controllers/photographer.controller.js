@@ -1,6 +1,23 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import Photographer from "../models/Photographer.js";
 import Review from "../models/Review.js";
+
+/**
+ * ============================================================
+ * HELPER: SAFE OBJECT ID VALIDATION (WITH FALLBACK)
+ * ============================================================
+ */
+const isValidObjectId = (id) => {
+  if (!id) return false;
+
+  // Preferred (works in Mongoose v6+)
+  if (Types?.ObjectId?.isValid(id)) return true;
+
+  // Fallback (older / edge environments)
+  if (mongoose?.Types?.ObjectId?.isValid(id)) return true;
+
+  return false;
+};
 
 /**
  * ============================================================
@@ -14,22 +31,23 @@ export const createOrUpdateProfile = async (req, res) => {
       name: req.body.name,
       coverImage: req.body.coverImage,
       city: req.body.city,
-      experience: req.body.experience,
+      experience: Number(req.body.experience || 0),
       bio: req.body.bio,
       services: req.body.services,
-      available: req.body.available,
+      available:
+        req.body.available === true || req.body.available === "true",
     };
 
     const profile = await Photographer.findOneAndUpdate(
       { user: req.user.id },
-      data,
+      { $set: data },
       { upsert: true, new: true }
     );
 
-    res.status(200).json(profile);
+    return res.status(200).json(profile);
   } catch (error) {
     console.error("❌ createOrUpdateProfile:", error);
-    res.status(500).json({ message: "Failed to update profile" });
+    return res.status(500).json({ message: "Failed to update profile" });
   }
 };
 
@@ -46,10 +64,10 @@ export const getMyProfile = async (req, res) => {
       return res.status(404).json({ message: "Profile not found" });
     }
 
-    res.status(200).json(profile);
+    return res.status(200).json(profile);
   } catch (error) {
     console.error("❌ getMyProfile:", error);
-    res.status(500).json({ message: "Failed to fetch profile" });
+    return res.status(500).json({ message: "Failed to fetch profile" });
   }
 };
 
@@ -61,12 +79,13 @@ export const getMyProfile = async (req, res) => {
 export const getAllPhotographers = async (req, res) => {
   try {
     const photographers = await Photographer.find({ available: true })
-      .select("name city rating experience coverImage services");
+      .select("name city rating experience coverImage services")
+      .lean();
 
-    res.status(200).json(photographers);
+    return res.status(200).json(photographers);
   } catch (error) {
     console.error("❌ getAllPhotographers:", error);
-    res.status(500).json({ message: "Failed to fetch photographers" });
+    return res.status(500).json({ message: "Failed to fetch photographers" });
   }
 };
 
@@ -75,39 +94,11 @@ export const getAllPhotographers = async (req, res) => {
  * GET SINGLE PHOTOGRAPHER BY ID (PUBLIC)
  * ============================================================
  */
-// export const getPhotographerById = async (req, res) => {
-//   try {
-//     const { id } = req.params;
-
-//     // ✅ Prevent CastError
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ message: "Invalid photographer ID" });
-//     }
-
-//     const photographer = await Photographer.findById(id);
-
-//     if (!photographer) {
-//       return res.status(404).json({ message: "Photographer not found" });
-//     }
-
-//     res.status(200).json(photographer);
-//   } catch (error) {
-//     console.error("❌ getPhotographerById:", error);
-//     res.status(500).json({
-//       message: "Server error while fetching photographer",
-//     });
-//   }
-// };
 export const getPhotographerById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Explicitly import mongoose if needed (though this is not ideal)
-    // Add this at the very beginning of the function
-    const mongoose = (await import('mongoose')).default;
-
-    // ✅ Prevent CastError
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid photographer ID" });
     }
 
@@ -117,10 +108,10 @@ export const getPhotographerById = async (req, res) => {
       return res.status(404).json({ message: "Photographer not found" });
     }
 
-    res.status(200).json(photographer);
+    return res.status(200).json(photographer);
   } catch (error) {
     console.error("❌ getPhotographerById:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error while fetching photographer",
     });
   }
@@ -129,14 +120,14 @@ export const getPhotographerById = async (req, res) => {
 /**
  * ============================================================
  * GET FULL PHOTOGRAPHER PROFILE (PUBLIC)
- * Includes: Photographer + Reviews
+ * Photographer + Reviews
  * ============================================================
  */
 export const getPhotographerFullProfile = async (req, res) => {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid photographer ID" });
     }
 
@@ -149,15 +140,16 @@ export const getPhotographerFullProfile = async (req, res) => {
     }
 
     const reviews = await Review.find({ photographer: id })
-      .populate("user", "name");
+      .populate("user", "name")
+      .lean();
 
-    res.status(200).json({
+    return res.status(200).json({
       photographer,
       reviews,
     });
   } catch (error) {
     console.error("❌ getPhotographerFullProfile:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to load full profile",
     });
   }
@@ -166,7 +158,7 @@ export const getPhotographerFullProfile = async (req, res) => {
 /**
  * ============================================================
  * UPDATE FULL PROFILE (Photographer Only)
- * Supports partial updates
+ * Partial updates supported
  * ============================================================
  */
 export const updateFullProfile = async (req, res) => {
@@ -189,16 +181,18 @@ export const updateFullProfile = async (req, res) => {
         body.available === true || body.available === "true";
     }
 
-    // ✅ Categories (safe JSON parsing)
+    // ✅ Categories (safe parsing)
     if (body.categories) {
       try {
         updateData.categories = JSON.parse(body.categories);
       } catch {
-        return res.status(400).json({ message: "Invalid categories format" });
+        return res
+          .status(400)
+          .json({ message: "Invalid categories format" });
       }
     }
 
-    // ✅ Services (safe parsing)
+    // ✅ Services
     if (body.services) {
       try {
         updateData.services = JSON.parse(body.services).map((s) => ({
@@ -227,7 +221,7 @@ export const updateFullProfile = async (req, res) => {
     }
 
     // ✅ Portfolio Images (append only)
-    if (req.files && req.files.length > 0) {
+    if (req.files?.length) {
       updateData.$push = {
         portfolioImages: {
           $each: req.files.map((f) => f.path),
@@ -238,16 +232,16 @@ export const updateFullProfile = async (req, res) => {
     const photographer = await Photographer.findOneAndUpdate(
       { user: req.user.id },
       updateData,
-      { upsert: true, new: true }
+      { new: true, upsert: true }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       photographer,
     });
   } catch (error) {
     console.error("❌ updateFullProfile:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Profile update failed",
     });
   }
