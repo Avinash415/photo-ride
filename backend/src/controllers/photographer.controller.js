@@ -1,23 +1,19 @@
-import { Types } from "mongoose";
 import Photographer from "../models/Photographer.js";
 import Review from "../models/Review.js";
 
 /**
  * ============================================================
- * SAFE OBJECT ID VALIDATOR (NO mongoose reference)
+ * PURE JS OBJECT ID VALIDATION
+ * (NO mongoose, NO Types)
  * ============================================================
  */
 const isValidObjectId = (id) => {
-  try {
-    return Types.ObjectId.isValid(id);
-  } catch {
-    return false;
-  }
+  return typeof id === "string" && /^[0-9a-fA-F]{24}$/.test(id);
 };
 
 /**
  * ============================================================
- * CREATE OR UPDATE BASIC PROFILE
+ * CREATE OR UPDATE BASIC PROFILE (Photographer Only)
  * ============================================================
  */
 export const createOrUpdateProfile = async (req, res) => {
@@ -49,7 +45,7 @@ export const createOrUpdateProfile = async (req, res) => {
 
 /**
  * ============================================================
- * GET MY PROFILE
+ * GET MY PROFILE (Photographer)
  * ============================================================
  */
 export const getMyProfile = async (req, res) => {
@@ -94,6 +90,7 @@ export const getPhotographerById = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // ✅ Pure JS validation
     if (!isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid photographer ID" });
     }
@@ -153,7 +150,8 @@ export const getPhotographerFullProfile = async (req, res) => {
 
 /**
  * ============================================================
- * UPDATE FULL PROFILE (PARTIAL UPDATES)
+ * UPDATE FULL PROFILE (Photographer Only)
+ * Partial updates supported
  * ============================================================
  */
 export const updateFullProfile = async (req, res) => {
