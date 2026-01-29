@@ -95,14 +95,28 @@ export const getAllPhotographers = async (req, res) => {
  * ============================================================
  */
 export const getPhotographerById = async (req, res) => {
+  console.log("📌 getPhotographerById called");
+  console.log("📌 params:", req.params);
+
   try {
     const { id } = req.params;
 
+    console.log("📌 validating id:", id);
+
+    if (!id) {
+      return res.status(400).json({ message: "ID missing" });
+    }
+
     if (!isValidObjectId(id)) {
+      console.log("❌ Invalid ObjectId");
       return res.status(400).json({ message: "Invalid photographer ID" });
     }
 
+    console.log("📌 Fetching photographer from DB");
+
     const photographer = await Photographer.findById(id);
+
+    console.log("📌 Photographer result:", photographer);
 
     if (!photographer) {
       return res.status(404).json({ message: "Photographer not found" });
@@ -110,12 +124,14 @@ export const getPhotographerById = async (req, res) => {
 
     return res.status(200).json(photographer);
   } catch (error) {
-    console.error("❌ getPhotographerById:", error);
+    console.error("🔥 getPhotographerById CRASH:", error);
     return res.status(500).json({
       message: "Server error while fetching photographer",
+      error: error.message, // TEMP: expose error
     });
   }
 };
+
 
 /**
  * ============================================================
